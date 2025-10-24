@@ -35,7 +35,8 @@ To run this project on your local machine, follow these steps.
     Open your terminal and change to the `apps` directory (the one that contains the `pubspec.yaml` file).
     ```sh
     # Example:
-    cd path/to/Dart-Hospital-Management-system-ba0d89209351ff8846e8f69f64e5ef26f977c9f6/apps
+    git clone https://github.com/Neitong/Dart-Hospital-Management-system.git
+    cd Dart-Hospital-Management-system
     ```
 
 2.  **Get Dependencies**
