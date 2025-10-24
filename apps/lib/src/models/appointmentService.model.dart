@@ -1,5 +1,3 @@
-// lib/domain/appointment_service.dart
-
 import 'package:apps/src/models/appointment.model.dart';
 import 'package:apps/src/data/database.dart';
 
@@ -52,6 +50,51 @@ class AppointmentService {
       return ScheduleAppointmentResult(
           success: false, message: 'Failed to create appointment in database.');
     }
+  }
+
+  bool deletePatientAndCancelAppointments(String patientId) {
+    final patient = _db.getPatient(patientId);
+    if (patient == null) {
+      return false; // Patient not found
+    }
+
+    // Create a copy of the appointments list to avoid modification errors during iteration.
+    final patientAppointments = List.of(patient.appointments);
+
+    for (final appt in patientAppointments) {
+      // If the appointment is scheduled, cancel it.
+      if (appt.status == AppointmentStatus.scheduled) {
+        // We re-use our existing cancellation logic.
+        // This updates the status and removes it from the doctor's list.
+        cancelAppointment(appt.id);
+      }
+      // No need to handle completed or already cancelled appointments.
+    }
+
+    // After handling all appointments, delete the patient from the database.
+    // This is the single source of truth for patient records.
+    return _db.deletePatient(patientId);
+  }
+
+  bool deleteDoctorAndCancelAppointments(String doctorId) {
+    final doctor = _db.getDoctor(doctorId);
+    if (doctor == null) {
+      return false; // Doctor not found
+    }
+
+    // BUSINESS RULE: Find all appointments for this doctor
+    final doctorAppointments = _db.getAppointmentsForDoctor(doctorId);
+    
+    for (final appt in doctorAppointments) {
+      // If the appointment is scheduled, cancel it
+      if (appt.status == AppointmentStatus.scheduled) {
+        // We re-use our existing cancellation logic
+        cancelAppointment(appt.id);
+      }
+    }
+
+    // After handling appointments, delete the doctor from the database
+    return _db.deleteDoctor(doctorId);
   }
 
   bool cancelAppointment(String appointmentId) {

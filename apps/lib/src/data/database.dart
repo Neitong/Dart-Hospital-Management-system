@@ -93,6 +93,43 @@ class Database {
     return List.unmodifiable(_appointments.values);
   }
 
+  Patient? updatePatient(Patient patient) {
+    // Check if the patient exists in the map
+    if (_patients.containsKey(patient.id)) {
+      _patients[patient.id] = patient;
+      return patient;
+    }
+    return null; // Patient not found
+  }
+
+  bool deletePatient(String id) {
+    // Remove the patient from the map using its ID
+    return _patients.remove(id) != null;
+  }
+
+  List<Appointment> getAppointmentsForPatient(String patientId) {
+    // This method is no longer needed as patient.appointments already provides this.
+    // However, if you still need it for some reason, ensure it filters by patient ID correctly.
+    return _appointments.values.where((a) => a.patient.id == patientId).toList();
+  }
+
+  Doctor? updateDoctor(Doctor doctor) {
+    if (_doctors.containsKey(doctor.id)) {
+      _doctors[doctor.id] = doctor;
+      return doctor;
+    }
+    return null; // Doctor not found
+  }
+
+  bool deleteDoctor(String id) {
+    // Remove the doctor from the map using its ID
+    return _doctors.remove(id) != null;
+  }
+
+  List<Appointment> getAppointmentsForDoctor(String doctorId) {
+    return _appointments.values.where((a) => a.doctor.id == doctorId).toList();
+  }
+
   // --- Seeding utility for demo data ---
   void seedData() {
     if (_patients.isEmpty && _doctors.isEmpty) {

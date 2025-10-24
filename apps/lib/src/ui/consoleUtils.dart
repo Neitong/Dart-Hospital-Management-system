@@ -33,20 +33,23 @@ class ConsoleUtils {
     print('$cyan\nℹ $message$reset');
   }
 
-  static String readInput(String prompt) {
+  static String readInput(String prompt, {bool allowEmpty = false}) {
     String? input;
-    while (input == null || input.isEmpty) {
+    while (input == null || (!allowEmpty && input.isEmpty)) {
       stdout.write('$yellow$prompt$reset');
       input = stdin.readLineSync();
-      if (input == null || input.isEmpty) {
+
+      if (!allowEmpty && (input == null || input.isEmpty)) {
         printError('Input cannot be empty. Please try again.');
       }
     }
-    return input;
+    // Return the input, which could be empty if allowEmpty was true
+    return input ?? '';
   }
 
   static int? readInt(String prompt) {
-    String input = readInput(prompt);
+    // We pass allowEmpty: false (the default) to ensure we get a number
+    String input = readInput(prompt, allowEmpty: false);
     try {
       return int.parse(input);
     } catch (e) {
