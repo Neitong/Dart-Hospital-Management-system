@@ -1,10 +1,15 @@
-import 'dart:js_interop';
+// bin/apps.dart
 
-import 'package:apps/apps.dart' as apps;
+import 'package:apps/src/data/database.dart';
+import 'package:apps/src/ui/manu.dart';
 
 void main(List<String> arguments) {
-  print('Connected...');
-  // The following lines were redundant or incorrect and have been removed.
-  // print.call('Connected...'); is the same as print('Connected...');
-  // print.jsify(); causes a compilation error.
+  // 1. Initialize Data Layer
+  final db = Database();
+  
+  // 2. Initialize UI Layer (which initializes Domain Layer)
+  final menu = MainMenu(db);
+
+  // 3. Start the application
+  menu.show();
 }
