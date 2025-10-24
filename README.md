@@ -36,7 +36,7 @@ To run this project on your local machine, follow these steps.
     ```sh
     # Example:
     git clone https://github.com/Neitong/Dart-Hospital-Management-system.git
-    cd Dart-Hospital-Management-system
+    cd Dart-Hospital-Management-system/apps
     ```
 
 2.  **Get Dependencies**
