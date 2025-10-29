@@ -15,10 +15,10 @@ class Database {
   final Map<String, Prescription> _prescriptions = {}; // ADDED
 
  // File paths
-  static const String _patientsFile = 'data/patients.json';
-  static const String _doctorsFile = 'data/doctors.json';
-  static const String _appointmentsFile = 'data/appointments.json';
-  static const String _prescriptionsFile = 'data/prescriptions.json'; // ADDED
+  final String _patientsFile;
+  final String _doctorsFile;
+  final String _appointmentsFile;
+  final String _prescriptionsFile;
 
   // Counters
   int _patientCounter = 1;
@@ -26,7 +26,15 @@ class Database {
   int _appointmentCounter = 1;
   int _prescriptionCounter = 1; // ADDED
 
-  Database() {
+  Database({
+    String patientsFile = 'data/patients.json',
+    String doctorsFile = 'data/doctors.json',
+    String appointmentsFile = 'data/appointments.json',
+    String prescriptionsFile = 'data/prescriptions.json',
+  })  : _patientsFile = patientsFile,
+        _doctorsFile = doctorsFile,
+        _appointmentsFile = appointmentsFile,
+        _prescriptionsFile = prescriptionsFile {
     _loadData();
   }
 
