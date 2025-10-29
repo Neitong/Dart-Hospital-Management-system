@@ -2,23 +2,38 @@
 
 import 'package:apps/src/models/patient.model.dart';
 import 'package:apps/src/models/doctor.model.dart';
+import 'package:apps/src/database/database.dart';
+
 
 enum AppointmentStatus { scheduled, completed, cancelled }
 
 class Appointment {
   final String id;
-  final Patient patient;
-  final Doctor doctor;
+  final Patient patientId;
+  final Doctor doctorId;
   final DateTime dateTime;
   AppointmentStatus status;
 
+  late Patient patient;
+  late Doctor doctor;
+
   Appointment({
     required this.id,
-    required this.patient,
-    required this.doctor,
+    required this.patientId,
+    required this.doctorId,
     required this.dateTime,
     this.status = AppointmentStatus.scheduled,
   });
+
+  void linkModels(Database db) {
+    final pat = db.getPatient(patientId.id);
+    final doc = db.getDoctor(doctorId.id);
+    if (pat == null || doc == null) {
+      throw Exception('Failed to link appointment $id: Patient or Doctor not found.');
+    }
+    patient = pat;
+    doctor = doc;
+  }
 
   void display() {
     print('  - Appointment ID: $id');
@@ -45,8 +60,27 @@ class Appointment {
         return 'Completed';
       case AppointmentStatus.cancelled:
         return 'Cancelled';
-      default:
-        return 'Unknown';
     }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'patientId': patientId,
+      'doctorId': doctorId,
+      'dateTime': dateTime.toIso8601String(),
+      'status': status.name, // Saves "scheduled" as a string
+    };
+  }
+
+  factory Appointment.fromJson(Map<String, dynamic> json) {
+    return Appointment(
+      id: json['id'],
+      patientId: json['patientId'],
+      doctorId: json['doctorId'],
+      dateTime: DateTime.parse(json['dateTime']),
+      status: AppointmentStatus.values
+          .firstWhere((e) => e.name == json['status']),
+    );
   }
 }

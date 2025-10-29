@@ -1,8 +1,9 @@
 import 'dart:io';
-import '../data/database.dart';
+import '../database/database.dart';
 import 'package:apps/src/models/appointmentService.model.dart';
 import 'package:apps/src/ui/consoleUtils.dart';
 import 'package:apps/src/models/appointment.model.dart';
+import 'package:apps/src/models/prescription.dart';
 
 
 // UI Layer - Handles user interaction
@@ -11,7 +12,7 @@ class MainMenu {
   final AppointmentService _appointmentService;
 
   MainMenu(this._db) : _appointmentService = AppointmentService(_db) {
-    _db.seedData(); // Load demo data
+    // _db.seedData(); // Load demo data
   }
 
   void show() {
@@ -22,7 +23,8 @@ class MainMenu {
       print('${ConsoleUtils.cyan}[1]${ConsoleUtils.reset} Manage Appointments');
       print('${ConsoleUtils.cyan}[2]${ConsoleUtils.reset} Manage Patients');
       print('${ConsoleUtils.cyan}[3]${ConsoleUtils.reset} Manage Doctors');
-      print('${ConsoleUtils.red}[4]${ConsoleUtils.reset} Exit');
+      print('${ConsoleUtils.cyan}[4]${ConsoleUtils.reset} Manage Prescriptions');
+      print('${ConsoleUtils.red}[5]${ConsoleUtils.reset} Exit');
       
       String choice = ConsoleUtils.readInput('Enter your choice: ');
 
@@ -37,9 +39,11 @@ class MainMenu {
           _showDoctorsMenu();
           break;
         case '4':
+          _showPrescriptionsMenu();
+          break;
+        case '5':
           running = false;
           print('\nGoodbye!');
-          break;
         default:
           ConsoleUtils.printError('Invalid choice. Please try again.');
           ConsoleUtils.waitForKey();
@@ -765,5 +769,156 @@ class MainMenu {
     // --- END OF NEW TABLE UI BLOCK ---
 
     ConsoleUtils.waitForKey();
+  }
+
+  void _showPrescriptionsMenu() {
+    bool running = true;
+    while(running) {
+      ConsoleUtils.clearScreen();
+      ConsoleUtils.printHeader('PRESCRIPTION MANAGEMENT');
+      print('${ConsoleUtils.cyan}[1]${ConsoleUtils.reset} Issue New Prescription');
+      print('${ConsoleUtils.cyan}[2]${ConsoleUtils.reset} View Patient Prescriptions');
+      print('${ConsoleUtils.red}[3]${ConsoleUtils.reset} Back to Main Menu');
+      String choice = ConsoleUtils.readInput('Enter your choice: ');
+
+      switch (choice) {
+        case '1':
+          _issuePrescription();
+          break;
+        case '2':
+          _viewPatientPrescriptions();
+          break;
+        case '3':
+          running = false;
+          break;
+        default:
+          ConsoleUtils.printError('Invalid choice.');
+          ConsoleUtils.waitForKey();
+      }
+    }
+  }
+
+  void _issuePrescription() {
+    ConsoleUtils.printHeader('ISSUE PRESCRIPTION');
+
+    // --- 1. Select Patient ---
+    final patients = _db.getAllPatients();
+    if (patients.isEmpty) {
+      ConsoleUtils.printError('No patients found.');
+      ConsoleUtils.waitForKey();
+      return;
+    }
+    ConsoleUtils.printInfo('Available Patients:');
+    for (int i = 0; i < patients.length; i++) {
+      print('  ${ConsoleUtils.cyan}${i + 1}.${ConsoleUtils.reset} ${patients[i].name} (${patients[i].contact})');
+    }
+    final patientIndex = ConsoleUtils.readInt('Enter Patient Number: ');
+    if (patientIndex == null || patientIndex < 1 || patientIndex > patients.length) {
+      ConsoleUtils.printError('Invalid selection.');
+      ConsoleUtils.waitForKey();
+      return;
+    }
+    final selectedPatient = patients[patientIndex - 1];
+
+    // --- 2. Select Doctor (Issuer) ---
+    final doctors = _db.getAllDoctors();
+    if (doctors.isEmpty) {
+      ConsoleUtils.printError('No doctors found.');
+      ConsoleUtils.waitForKey();
+      return;
+    }
+    ConsoleUtils.printInfo('Available Doctors (Issuer):');
+    for (int i = 0; i < doctors.length; i++) {
+      print('  ${ConsoleUtils.cyan}${i + 1}.${ConsoleUtils.reset} Dr. ${doctors[i].name} (${doctors[i].specialty})');
+    }
+    final doctorIndex = ConsoleUtils.readInt('Enter Doctor Number: ');
+    if (doctorIndex == null || doctorIndex < 1 || doctorIndex > doctors.length) {
+      ConsoleUtils.printError('Invalid selection.');
+      ConsoleUtils.waitForKey();
+      return;
+    }
+    final selectedDoctor = doctors[doctorIndex - 1];
+
+    // --- 3. Get Prescription Details ---
+    final medication = ConsoleUtils.readInput('Enter Medication: ');
+    final dosage = ConsoleUtils.readInput('Enter Dosage (e.g., 500mg, 1 tablet 2x/day): ');
+
+    // --- 4. Call the Domain Service ---
+    final result = _appointmentService.issuePrescription(
+        selectedPatient.id, selectedDoctor.id, medication, dosage);
+
+    if (result.success) {
+      ConsoleUtils.printSuccess(result.message);
+      // Print confirmation table
+      _printPrescriptionTable([result.prescription!]);
+    } else {
+      ConsoleUtils.printError(result.message);
+    }
+    ConsoleUtils.waitForKey();
+  }
+
+  void _viewPatientPrescriptions() {
+    ConsoleUtils.printHeader('VIEW PATIENT PRESCRIPTIONS');
+
+    // --- 1. Select Patient ---
+    final patients = _db.getAllPatients();
+    if (patients.isEmpty) {
+      ConsoleUtils.printError('No patients found.');
+      ConsoleUtils.waitForKey();
+      return;
+    }
+    ConsoleUtils.printInfo('Select Patient:');
+    for (int i = 0; i < patients.length; i++) {
+      print('  ${ConsoleUtils.cyan}${i + 1}.${ConsoleUtils.reset} ${patients[i].name} (${patients[i].contact})');
+    }
+    final patientIndex = ConsoleUtils.readInt('Enter Patient Number: ');
+    if (patientIndex == null || patientIndex < 1 || patientIndex > patients.length) {
+      ConsoleUtils.printError('Invalid selection.');
+      ConsoleUtils.waitForKey();
+      return;
+    }
+    final selectedPatient = patients[patientIndex - 1];
+
+    // --- 2. Get and Display Prescriptions ---
+    final prescriptions = _db.getPrescriptionsForPatient(selectedPatient.id);
+    if (prescriptions.isEmpty) {
+      ConsoleUtils.printInfo('No prescriptions found for ${selectedPatient.name}.');
+    } else {
+      ConsoleUtils.printInfo('Showing prescriptions for ${selectedPatient.name}:');
+      _printPrescriptionTable(prescriptions);
+    }
+    ConsoleUtils.waitForKey();
+  }
+
+  /// Helper to print a formatted table of prescriptions.
+  void _printPrescriptionTable(List<Prescription> prescriptions) {
+    const int idWidth = 10;
+    const int dateWidth = 12;
+    const int doctorWidth = 20;
+    const int medWidth = 20;
+    const int dosageWidth = 20;
+
+    // 1. Print Header
+    print(
+        '\n${ConsoleUtils.bold}${ConsoleUtils.cyan}'
+        '${ConsoleUtils.pad("ID", idWidth)}'
+        '${ConsoleUtils.pad("Date", dateWidth)}'
+        '${ConsoleUtils.pad("Doctor", doctorWidth)}'
+        '${ConsoleUtils.pad("Medication", medWidth)}'
+        '${ConsoleUtils.pad("Dosage", dosageWidth)}'
+        '${ConsoleUtils.reset}');
+
+    // 2. Print Separator
+    print('${ConsoleUtils.cyan}${'-' * (idWidth + dateWidth + doctorWidth + medWidth + dosageWidth)}${ConsoleUtils.reset}');
+
+    // 3. Print Data Rows
+    for (var p in prescriptions) {
+      print(
+          '${ConsoleUtils.pad(p.id, idWidth)}'
+          '${ConsoleUtils.pad(p.formattedDate, dateWidth)}'
+          '${ConsoleUtils.pad('Dr. ' + p.doctor.name, doctorWidth)}'
+          '${ConsoleUtils.pad(p.medication, medWidth)}'
+          '${ConsoleUtils.pad(p.dosage, dosageWidth)}');
+    }
   }
 }

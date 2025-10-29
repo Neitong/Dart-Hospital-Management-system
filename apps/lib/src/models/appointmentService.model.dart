@@ -1,5 +1,8 @@
 import 'package:apps/src/models/appointment.model.dart';
-import 'package:apps/src/data/database.dart';
+import 'package:apps/src/database/database.dart';
+import 'package:apps/src/models/prescription.dart';
+
+
 
 // Domain Service - Contains main business logic
 class AppointmentService {
@@ -49,6 +52,39 @@ class AppointmentService {
     } else {
       return ScheduleAppointmentResult(
           success: false, message: 'Failed to create appointment in database.');
+    }
+  }
+
+  IssuePrescriptionResult issuePrescription(
+    String patientId, String doctorId, String medication, String dosage) {
+    
+    final patient = _db.getPatient(patientId);
+    if (patient == null) {
+      return IssuePrescriptionResult(
+          success: false, message: 'Patient not found.');
+    }
+
+    final doctor = _db.getDoctor(doctorId);
+    if (doctor == null) {
+      return IssuePrescriptionResult(
+          success: false, message: 'Doctor not found.');
+    }
+
+    if (medication.isEmpty || dosage.isEmpty) {
+       return IssuePrescriptionResult(
+          success: false, message: 'Medication and Dosage cannot be empty.');
+    }
+
+    final prescription = _db.createPrescription(patient, doctor, medication, dosage);
+    
+    if (prescription != null) {
+      return IssuePrescriptionResult(
+          success: true,
+          prescription: prescription,
+          message: 'Prescription issued successfully.');
+    } else {
+      return IssuePrescriptionResult(
+          success: false, message: 'Failed to create prescription in database.');
     }
   }
 
@@ -138,4 +174,13 @@ class ScheduleAppointmentResult {
 
   ScheduleAppointmentResult(
       {required this.success, required this.message, this.appointment});
+}
+
+class IssuePrescriptionResult {
+  final bool success;
+  final String message;
+  final Prescription? prescription;
+
+  IssuePrescriptionResult(
+      {required this.success, required this.message, this.prescription});
 }

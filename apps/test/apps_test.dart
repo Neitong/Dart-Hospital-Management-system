@@ -3,7 +3,7 @@
 import 'package:apps/src/models/appointment.model.dart';
 import 'package:apps/src/models/appointmentService.model.dart';
 import 'package:test/test.dart';
-import 'package:apps/src/data/database.dart';
+import 'package:apps/src/database/database.dart';
 
 void main() {
   late Database db;

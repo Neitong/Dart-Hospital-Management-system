@@ -1,6 +1,6 @@
 // bin/apps.dart
 
-import 'package:apps/src/data/database.dart';
+import 'package:apps/src/database/database.dart';
 import 'package:apps/src/ui/manu.dart';
 
 void main(List<String> arguments) {

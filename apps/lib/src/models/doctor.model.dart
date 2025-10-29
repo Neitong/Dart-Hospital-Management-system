@@ -50,4 +50,26 @@ class Doctor extends Staff {
     // Polymorphism example: A doctor's pay calculation would be specific
     return "Calculated pay for Doctor (Specialty: $specialty)";
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'contact': contact,
+      'staffId': staffId,
+      'specialty': specialty,
+      'department': department,
+    };
+  }
+
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+    return Doctor(
+      id: json['id'],
+      name: json['name'],
+      contact: json['contact'],
+      staffId: json['staffId'],
+      specialty: json['specialty'],
+      department: json['department'],
+    );
+  }
 }
