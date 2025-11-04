@@ -3,9 +3,13 @@
 import 'package:apps/src/models/appointment.model.dart';
 import 'package:apps/src/models/staff.model.dart';
 import 'package:apps/src/ui/consoleUtils.dart';
+import 'package:apps/src/models/prescription.dart';
+import 'package:apps/src/models/patient.model.dart';
+import 'package:apps/src/models/medication.model.dart';
 
 class Doctor extends Staff {
   String specialty;
+  List<String> specializations;
   final List<Appointment> _appointments = [];
 
   Doctor({
@@ -14,28 +18,43 @@ class Doctor extends Staff {
     required super.contact,
     required super.staffId,
     required this.specialty,
+    List<String>? specializations,
     super.department = 'Medical',
-  });
+  }) : specializations = specializations ?? [specialty];
 
   // Encapsulation
   List<Appointment> get appointments => List.unmodifiable(_appointments);
 
-  void addAppointment(Appointment appointment) {
+  void scheduleAppointment(Appointment appointment) {
     _appointments.add(appointment);
   }
 
-  void removeAppointment(Appointment appointment) {
-    _appointments.remove(appointment);
+  void removeAppointment(String appointmentId) {
+    _appointments.removeWhere((appt) => appt.id == appointmentId);
   }
 
-  bool isAvailable(DateTime time) {
+  bool isAvailable(DateTime start, Duration duration) {
     // Check if the doctor has another appointment at the same time
-    return !_appointments.any((appt) =>
-        appt.dateTime.year == time.year &&
-        appt.dateTime.month == time.month &&
-        appt.dateTime.day == time.day &&
-        appt.dateTime.hour == time.hour &&
-        appt.status == AppointmentStatus.scheduled);
+    final end = start.add(duration);
+    return !_appointments.any((appt) {
+      if (appt.status != AppointmentStatus.scheduled) return false;
+      final apptEnd = appt.start.add(appt.duration);
+      // Check for overlap: appointment starts before end time and ends after start time
+      return appt.start.isBefore(end) && apptEnd.isAfter(start);
+    });
+  }
+
+  Prescription createPrescription(
+      String prescriptionId, Patient patient, List<Medication> medications, String? notes) {
+    final prescription = Prescription(
+      id: prescriptionId,
+      patientId: patient.id,
+      doctorId: id,
+      date: DateTime.now(),
+      medications: medications,
+      notes: notes,
+    );
+    return prescription;
   }
 
   @override
@@ -58,6 +77,7 @@ class Doctor extends Staff {
       'contact': contact,
       'staffId': staffId,
       'specialty': specialty,
+      'specializations': specializations,
       'department': department,
     };
   }
@@ -69,6 +89,9 @@ class Doctor extends Staff {
       contact: json['contact'],
       staffId: json['staffId'],
       specialty: json['specialty'],
+      specializations: json['specializations'] != null 
+          ? List<String>.from(json['specializations'])
+          : null,
       department: json['department'],
     );
   }

@@ -12,6 +12,10 @@
 # The core lints are also what is used by pub.dev for scoring packages.
 
 include: package:lints/recommended.yaml
+analyzer:
+  errors:
+    file_names: ignore
+    prefer_interpolation_to_compose_strings: ignore
 
 # Uncomment the following section to specify additional rules.
 

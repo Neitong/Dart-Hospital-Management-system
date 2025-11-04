@@ -11,8 +11,10 @@ class Appointment {
   final String id;
   final Patient patientId;
   final Doctor doctorId;
-  final DateTime dateTime;
+  final DateTime start;
+  final Duration duration;
   AppointmentStatus status;
+  String notes;
 
   late Patient patient;
   late Doctor doctor;
@@ -21,8 +23,10 @@ class Appointment {
     required this.id,
     required this.patientId,
     required this.doctorId,
-    required this.dateTime,
+    required this.start,
+    required this.duration,
     this.status = AppointmentStatus.scheduled,
+    this.notes = '',
   });
 
   void linkModels(Database db) {
@@ -39,17 +43,21 @@ class Appointment {
     print('  - Appointment ID: $id');
     print('  - Patient: ${patient.name}');
     print('  - Doctor: Dr. ${doctor.name} (${doctor.specialty})');
-    print('  - Date: ${dateTime.toLocal().toString().split(' ')[0]}');
-    print('  - Time: ${dateTime.toLocal().hour}:00');
+    print('  - Date: ${start.toLocal().toString().split(' ')[0]}');
+    print('  - Time: ${start.toLocal().hour}:00');
+    print('  - Duration: ${duration.inMinutes} minutes');
     print('  - Status: $status');
+    if (notes.isNotEmpty) {
+      print('  - Notes: $notes');
+    }
   }
 
   String get formattedDate {
-    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+    return '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
   }
 
   String get formattedTime {
-    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
   }
 
   String get formattedStatus {
@@ -68,8 +76,10 @@ class Appointment {
       'id': id,
       'patientId': patientId,
       'doctorId': doctorId,
-      'dateTime': dateTime.toIso8601String(),
-      'status': status.name, // Saves "scheduled" as a string
+      'start': start.toIso8601String(),
+      'duration': duration.inMinutes,
+      'status': status.name,
+      'notes': notes,
     };
   }
 
@@ -78,9 +88,11 @@ class Appointment {
       id: json['id'],
       patientId: json['patientId'],
       doctorId: json['doctorId'],
-      dateTime: DateTime.parse(json['dateTime']),
+      start: DateTime.parse(json['start']),
+      duration: Duration(minutes: json['duration']),
       status: AppointmentStatus.values
           .firstWhere((e) => e.name == json['status']),
+      notes: json['notes'] ?? '',
     );
   }
 }

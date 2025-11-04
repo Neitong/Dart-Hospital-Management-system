@@ -1,4 +1,3 @@
-import 'dart:io';
 import '../database/database.dart';
 import 'package:apps/src/models/appointmentService.model.dart';
 import 'package:apps/src/ui/consoleUtils.dart';
@@ -128,15 +127,23 @@ class MainMenu {
         allowEmpty: true);
     if (newContact.isEmpty) newContact = patientToUpdate.contact;
 
-    String newHistory = ConsoleUtils.readInput(
-        '  History (${patientToUpdate.medicalHistory}): ',
+    final currentBirthdateStr = patientToUpdate.birthdate.toIso8601String().split('T')[0];
+    String newBirthdateStr = ConsoleUtils.readInput(
+        '  Birthdate ($currentBirthdateStr): ',
         allowEmpty: true);
-    if (newHistory.isEmpty) newHistory = patientToUpdate.medicalHistory;
+    DateTime newBirthdate = patientToUpdate.birthdate;
+    if (newBirthdateStr.isNotEmpty) {
+      try {
+        newBirthdate = DateTime.parse(newBirthdateStr);
+      } catch (e) {
+        ConsoleUtils.printError('Invalid date format. Keeping existing.');
+      }
+    }
 
     // 3. Apply updates to the patient object
     patientToUpdate.name = newName;
     patientToUpdate.contact = newContact;
-    patientToUpdate.medicalHistory = newHistory;
+    patientToUpdate.birthdate = newBirthdate;
     
     // 4. Save the updated object to the database
     _db.updatePatient(patientToUpdate);
@@ -144,20 +151,21 @@ class MainMenu {
     ConsoleUtils.printSuccess('Patient ${patientToUpdate.id} updated successfully!');
     
     // 5. Show the updated patient in the table format
-    const int idWidth = 10, nameWidth = 20, contactWidth = 15, historyWidth = 25;
+    const int idWidth = 10, nameWidth = 20, contactWidth = 15, birthdateWidth = 15;
     print(
         '\n${ConsoleUtils.bold}${ConsoleUtils.cyan}'
         '${ConsoleUtils.pad("ID", idWidth)}'
         '${ConsoleUtils.pad("Name", nameWidth)}'
         '${ConsoleUtils.pad("Contact", contactWidth)}'
-        '${ConsoleUtils.pad("Medical History", historyWidth)}'
+        '${ConsoleUtils.pad("Birthdate", birthdateWidth)}'
         '${ConsoleUtils.reset}');
-    print('${ConsoleUtils.cyan}${'-' * (idWidth + nameWidth + contactWidth + historyWidth)}${ConsoleUtils.reset}');
+    print('${ConsoleUtils.cyan}${'-' * (idWidth + nameWidth + contactWidth + birthdateWidth)}${ConsoleUtils.reset}');
+    final birthdateStr = patientToUpdate.birthdate.toIso8601String().split('T')[0];
     print(
         '${ConsoleUtils.pad(patientToUpdate.id, idWidth)}'
         '${ConsoleUtils.pad(patientToUpdate.name, nameWidth)}'
         '${ConsoleUtils.pad(patientToUpdate.contact, contactWidth)}'
-        '${ConsoleUtils.pad(patientToUpdate.medicalHistory, historyWidth)}');
+        '${ConsoleUtils.pad(birthdateStr, birthdateWidth)}');
 
     ConsoleUtils.waitForKey();
   }
@@ -306,13 +314,16 @@ class MainMenu {
       ConsoleUtils.waitForKey();
       return;
     }
+    
+    final durationMinutes = ConsoleUtils.readInt('Enter Duration (minutes, default 30): ') ?? 30;
 
     try {
       final dateTime = DateTime.parse('$dateStr $hour:00:00');
+      final duration = Duration(minutes: durationMinutes);
 
       // Call the Domain Service
       final result = _appointmentService.scheduleAppointment(
-          selectedPatient.id, selectedDoctor.id, dateTime);
+          selectedPatient.id, selectedDoctor.id, dateTime, duration);
 
       if (result.success) {
         ConsoleUtils.printSuccess(result.message);
@@ -359,7 +370,7 @@ class MainMenu {
       const int idWidth = 10;
       const int nameWidth = 20;
       const int contactWidth = 15;
-      const int historyWidth = 25;
+      const int birthdateWidth = 15;
 
       // 1. Print Header
       print(
@@ -367,19 +378,20 @@ class MainMenu {
           '${ConsoleUtils.pad("ID", idWidth)}'
           '${ConsoleUtils.pad("Name", nameWidth)}'
           '${ConsoleUtils.pad("Contact", contactWidth)}'
-          '${ConsoleUtils.pad("Medical History", historyWidth)}'
+          '${ConsoleUtils.pad("Birthdate", birthdateWidth)}'
           '${ConsoleUtils.reset}');
 
       // 2. Print Separator
-      print('${ConsoleUtils.cyan}${'-' * (idWidth + nameWidth + contactWidth + historyWidth)}${ConsoleUtils.reset}');
+      print('${ConsoleUtils.cyan}${'-' * (idWidth + nameWidth + contactWidth + birthdateWidth)}${ConsoleUtils.reset}');
 
       // 3. Print Data Rows
       for (var patient in patients) {
+        final birthdateStr = patient.birthdate.toIso8601String().split('T')[0];
         print(
             '${ConsoleUtils.pad(patient.id, idWidth)}'
             '${ConsoleUtils.pad(patient.name, nameWidth)}'
             '${ConsoleUtils.pad(patient.contact, contactWidth)}'
-            '${ConsoleUtils.pad(patient.medicalHistory, historyWidth)}');
+            '${ConsoleUtils.pad(birthdateStr, birthdateWidth)}');
       }
       // --- END OF NEW TABLE UI BLOCK ---
     }
@@ -496,16 +508,23 @@ class MainMenu {
     ConsoleUtils.printHeader('ADD NEW PATIENT');
     final name = ConsoleUtils.readInput('Enter Name: ');
     final contact = ConsoleUtils.readInput('Enter Contact (Phone): ');
-    final history = ConsoleUtils.readInput('Enter Medical History: ');
+    final birthdateInput = ConsoleUtils.readInput('Enter Birthdate (YYYY-MM-DD): ');
+    
+    DateTime? birthdate;
+    try {
+      birthdate = DateTime.parse(birthdateInput);
+    } catch (e) {
+      ConsoleUtils.printError('Invalid date format. Using default.');
+    }
 
-    final patient = _db.createPatient(name, contact, history);
+    final patient = _db.createPatient(name, contact, birthdate: birthdate);
     ConsoleUtils.printSuccess('Patient added successfully!');
 
     // --- NEW TABLE UI BLOCK ---
     const int idWidth = 10;
     const int nameWidth = 20;
     const int contactWidth = 15;
-    const int historyWidth = 25;
+    const int birthdateWidth = 15;
 
     // 1. Print Header
     print(
@@ -513,18 +532,19 @@ class MainMenu {
         '${ConsoleUtils.pad("ID", idWidth)}'
         '${ConsoleUtils.pad("Name", nameWidth)}'
         '${ConsoleUtils.pad("Contact", contactWidth)}'
-        '${ConsoleUtils.pad("Medical History", historyWidth)}'
+        '${ConsoleUtils.pad("Birthdate", birthdateWidth)}'
         '${ConsoleUtils.reset}');
 
     // 2. Print Separator
-    print('${ConsoleUtils.cyan}${'-' * (idWidth + nameWidth + contactWidth + historyWidth)}${ConsoleUtils.reset}');
+    print('${ConsoleUtils.cyan}${'-' * (idWidth + nameWidth + contactWidth + birthdateWidth)}${ConsoleUtils.reset}');
 
     // 3. Print Data Row
+    final birthdateStr = patient.birthdate.toIso8601String().split('T')[0];
     print(
         '${ConsoleUtils.pad(patient.id, idWidth)}'
         '${ConsoleUtils.pad(patient.name, nameWidth)}'
         '${ConsoleUtils.pad(patient.contact, contactWidth)}'
-        '${ConsoleUtils.pad(patient.medicalHistory, historyWidth)}');
+        '${ConsoleUtils.pad(birthdateStr, birthdateWidth)}');
     // --- END OF NEW TABLE UI BLOCK ---
 
     ConsoleUtils.waitForKey();
@@ -913,12 +933,14 @@ class MainMenu {
 
     // 3. Print Data Rows
     for (var p in prescriptions) {
+      final medicationsStr = p.medications.map((m) => m.name).join(', ');
+      final dosageStr = p.medications.isNotEmpty ? p.medications.first.dosage : 'N/A';
       print(
           '${ConsoleUtils.pad(p.id, idWidth)}'
           '${ConsoleUtils.pad(p.formattedDate, dateWidth)}'
-          '${ConsoleUtils.pad('Dr. ' + p.doctor.name, doctorWidth)}'
-          '${ConsoleUtils.pad(p.medication, medWidth)}'
-          '${ConsoleUtils.pad(p.dosage, dosageWidth)}');
+          '${ConsoleUtils.pad('Dr. ${p.doctor.name}', doctorWidth)}'
+          '${ConsoleUtils.pad(medicationsStr, medWidth)}'
+          '${ConsoleUtils.pad(dosageStr, dosageWidth)}');
     }
   }
 }
