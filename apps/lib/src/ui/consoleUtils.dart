@@ -44,7 +44,7 @@ class ConsoleUtils {
       }
     }
     // Return the input, which could be empty if allowEmpty was true
-    return input ?? '';
+    return input;
   }
 
   static int? readInt(String prompt) {

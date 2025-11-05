@@ -3,14 +3,15 @@
 import 'package:apps/src/database/database.dart';
 import 'package:apps/src/models/doctor.model.dart';
 import 'package:apps/src/models/patient.model.dart';
+import 'package:apps/src/models/medication.model.dart';
 
 class Prescription {
   final String id;
   final String patientId;
   final String doctorId;
-  final String medication;
-  final String dosage;
-  final DateTime dateIssued;
+  final DateTime date;
+  final List<Medication> medications;
+  final String? notes;
 
   // Runtime-linked objects
   late Patient patient;
@@ -20,9 +21,9 @@ class Prescription {
     required this.id,
     required this.patientId,
     required this.doctorId,
-    required this.medication,
-    required this.dosage,
-    required this.dateIssued,
+    required this.date,
+    required this.medications,
+    this.notes,
   });
 
   /// Links the patient and doctor objects after loading from JSON.
@@ -42,9 +43,9 @@ class Prescription {
       'id': id,
       'patientId': patientId,
       'doctorId': doctorId,
-      'medication': medication,
-      'dosage': dosage,
-      'dateIssued': dateIssued.toIso8601String(),
+      'date': date.toIso8601String(),
+      'medications': medications.map((med) => med.toJson()).toList(),
+      'notes': notes,
     };
   }
 
@@ -54,12 +55,14 @@ class Prescription {
       id: json['id'],
       patientId: json['patientId'],
       doctorId: json['doctorId'],
-      medication: json['medication'],
-      dosage: json['dosage'],
-      dateIssued: DateTime.parse(json['dateIssued']),
+      date: DateTime.parse(json['date']),
+      medications: (json['medications'] as List)
+          .map((medJson) => Medication.fromJson(medJson))
+          .toList(),
+      notes: json['notes'],
     );
   }
 
   String get formattedDate =>
-      '${dateIssued.year}-${dateIssued.month.toString().padLeft(2, '0')}-${dateIssued.day.toString().padLeft(2, '0')}';
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

@@ -6,6 +6,7 @@ import 'package:apps/src/models/appointment.model.dart';
 import 'package:apps/src/models/doctor.model.dart';
 import 'package:apps/src/models/patient.model.dart';
 import 'package:apps/src/models/prescription.dart';
+import 'package:apps/src/models/medication.model.dart';
 
 // Data Layer - Manages data storage (JSON files)
 class Database {
@@ -78,11 +79,11 @@ class Database {
       for (final appointment in _appointments.values) {
         appointment.linkModels(this);
         appointment.patient.addAppointment(appointment);
-        appointment.doctor.addAppointment(appointment);
+        appointment.doctor.scheduleAppointment(appointment);
       }
        for (final prescription in _prescriptions.values) {
         prescription.linkModels(this);
-        prescription.patient.addPrescription(prescription);
+        prescription.patient.receivePrescription(prescription);
       }
 
     } catch (e) {
@@ -92,21 +93,22 @@ class Database {
   }
 
   /// Generic helper to load a list from a JSON file.
-  List<dynamic> _loadFromFile(String fileName) {
+  List<Map<String, dynamic>> _loadFromFile(String fileName) {
     final file = File(fileName);
     if (file.existsSync()) {
       final content = file.readAsStringSync();
       if (content.isNotEmpty) {
-        return jsonDecode(content) as List<dynamic>;
+        final decoded = jsonDecode(content) as List;
+        return decoded.cast<Map<String, dynamic>>();
       }
     }
     return [];
   }
 
   /// Generic helper to save a list to a JSON file.
-  void _saveToFile(String fileName, Map<String, dynamic> dataMap) {
+  void _saveToFile<T>(String fileName, Map<String, T> dataMap) {
     try {
-      final listToSave = dataMap.values.map((item) => item.toJson()).toList();
+      final listToSave = dataMap.values.map((item) => (item as dynamic).toJson() as Map<String, dynamic>).toList();
 
       final encoder = JsonEncoder.withIndent(' ');
       final content = encoder.convert(listToSave);
@@ -129,10 +131,13 @@ class Database {
   }
 
   // --- Patient Methods ---
-  Patient createPatient(String name, String contact, String medicalHistory) {
+  Patient createPatient(String name, String contact, {DateTime? birthdate}) {
     final newId = 'PT${(_patientCounter++).toString().padLeft(6, '0')}';
     final patient = Patient(
-      id: newId, name: name, contact: contact, medicalHistory: medicalHistory,
+      id: newId, 
+      name: name, 
+      contact: contact, 
+      birthdate: birthdate ?? DateTime.now().subtract(const Duration(days: 365 * 30)),
     );
     _patients[patient.id] = patient;
     _saveToFile(_patientsFile, _patients); // Save changes
@@ -193,18 +198,19 @@ class Database {
   }
 
   // --- Appointment Methods ---
-  Appointment? createAppointment(Patient patient, Doctor doctor, DateTime dateTime) {
+  Appointment? createAppointment(Patient patient, Doctor doctor, DateTime start, Duration duration) {
     final newId = 'AP${(_appointmentCounter++).toString().padLeft(6, '0')}';
     final appointment = Appointment(
       id: newId,
       patientId: patient, // Store ID
       doctorId: doctor,   // Store ID
-      dateTime: dateTime,
+      start: start,
+      duration: duration,
     );
     appointment.linkModels(this); // Link runtime objects
     _appointments[appointment.id] = appointment;
     patient.addAppointment(appointment);
-    doctor.addAppointment(appointment);
+    doctor.scheduleAppointment(appointment);
     _saveToFile(_appointmentsFile, _appointments); // Save changes
     return appointment;
   }
@@ -232,19 +238,19 @@ class Database {
   
   // --- Prescription Methods (NEW) ---
   Prescription? createPrescription(
-    Patient patient, Doctor doctor, String medication, String dosage) {
+    Patient patient, Doctor doctor, List<Medication> medications, {String? notes}) {
     final newId = 'PR${(_prescriptionCounter++).toString().padLeft(6, '0')}';
     final prescription = Prescription(
       id: newId,
       patientId: patient.id,
       doctorId: doctor.id,
-      medication: medication,
-      dosage: dosage,
-      dateIssued: DateTime.now(),
+      date: DateTime.now(),
+      medications: medications,
+      notes: notes,
     );
     prescription.linkModels(this); // Link runtime objects
     _prescriptions[prescription.id] = prescription;
-    patient.addPrescription(prescription);
+    patient.receivePrescription(prescription);
     _saveToFile(_prescriptionsFile, _prescriptions); // Save changes
     return prescription;
   }
@@ -261,16 +267,21 @@ class Database {
       print('Seeding initial data...');
       final drHouse =
           createDoctor('Gregory House', '555-0101', 'Diagnostician');
-      final drCuddy = createDoctor('Lisa Cuddy', '555-0102', 'Endocrinology');
+      createDoctor('Lisa Cuddy', '555-0102', 'Endocrinology');
 
       final patientJohn =
-          createPatient('John Doe', '555-0201', 'Pollen Allergy');
-      createPatient('Jane Smith', '555-0202', 'Asthma');
+          createPatient('John Doe', '555-0201', 
+              birthdate: DateTime(1990, 5, 15));
+      createPatient('Jane Smith', '555-0202',
+              birthdate: DateTime(1985, 8, 22));
 
-      final time = DateTime.now().add(Duration(days: 1, hours: 2));
-      createAppointment(patientJohn, drHouse, time);
+      final time = DateTime.now().add(const Duration(days: 1, hours: 2));
+      createAppointment(patientJohn, drHouse, time, const Duration(minutes: 30));
       
-      createPrescription(patientJohn, drHouse, 'Vicodin', '500mg');
+      final medications = [
+        Medication(name: 'Vicodin', dosage: '500mg', days: 7),
+      ];
+      createPrescription(patientJohn, drHouse, medications, notes: 'Take with food');
       
       print('Seeding complete. Data saved to .json files.');
     }

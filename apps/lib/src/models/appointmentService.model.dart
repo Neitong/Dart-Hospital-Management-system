@@ -1,6 +1,7 @@
 import 'package:apps/src/models/appointment.model.dart';
 import 'package:apps/src/database/database.dart';
 import 'package:apps/src/models/prescription.dart';
+import 'package:apps/src/models/medication.model.dart';
 
 
 
@@ -12,7 +13,7 @@ class AppointmentService {
 
   // Result sealed class for better error handling
   ScheduleAppointmentResult scheduleAppointment(
-      String patientId, String doctorId, DateTime dateTime) {
+      String patientId, String doctorId, DateTime dateTime, Duration duration) {
     final patient = _db.getPatient(patientId);
     if (patient == null) {
       return ScheduleAppointmentResult(
@@ -26,7 +27,7 @@ class AppointmentService {
     }
 
     // Business Rule: Check if doctor is available
-    if (!doctor.isAvailable(dateTime)) {
+    if (!doctor.isAvailable(dateTime, duration)) {
       return ScheduleAppointmentResult(
           success: false,
           message:
@@ -35,7 +36,7 @@ class AppointmentService {
 
     // Business Rule: Check if patient is available
     if (patient.appointments.any((appt) =>
-        appt.dateTime == dateTime &&
+        appt.start == dateTime &&
         appt.status == AppointmentStatus.scheduled)) {
       return ScheduleAppointmentResult(
           success: false,
@@ -43,7 +44,7 @@ class AppointmentService {
               'Patient already has an appointment at this time.');
     }
 
-    final appointment = _db.createAppointment(patient, doctor, dateTime);
+    final appointment = _db.createAppointment(patient, doctor, dateTime, duration);
     if (appointment != null) {
       return ScheduleAppointmentResult(
           success: true,
@@ -56,7 +57,7 @@ class AppointmentService {
   }
 
   IssuePrescriptionResult issuePrescription(
-    String patientId, String doctorId, String medication, String dosage) {
+    String patientId, String doctorId, String medication, String dosage, {int days = 7}) {
     
     final patient = _db.getPatient(patientId);
     if (patient == null) {
@@ -75,7 +76,10 @@ class AppointmentService {
           success: false, message: 'Medication and Dosage cannot be empty.');
     }
 
-    final prescription = _db.createPrescription(patient, doctor, medication, dosage);
+    final medications = [
+      Medication(name: medication, dosage: dosage, days: days),
+    ];
+    final prescription = _db.createPrescription(patient, doctor, medications);
     
     if (prescription != null) {
       return IssuePrescriptionResult(
@@ -143,8 +147,8 @@ class AppointmentService {
     appointment.status = AppointmentStatus.cancelled;
     
     // Also remove from doctor and patient lists for availability
-    appointment.doctor.removeAppointment(appointment);
-    appointment.patient.removeAppointment(appointment);
+    appointment.doctor.removeAppointment(appointment.id);
+    appointment.patient.cancelAppointment(appointment.id);
     
     _db.updateAppointment(appointment);
     return true;
