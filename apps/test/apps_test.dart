@@ -37,11 +37,10 @@ void main() {
   late String patient2Id;
   late String doctor2Id;
 
-  // Runs before *each* test.
   setUp(() {
     // 1. Clean up files from any previous failed test
     _deleteTestFiles();
-    
+
     // 2. Create a new DB instance pointing to our test files
     db = Database(
       patientsFile: testPatientsFile,
@@ -52,7 +51,7 @@ void main() {
 
     // 3. Create the service
     service = AppointmentService(db);
-    
+
     // 4. Seed data *for this test*
     final patient = db.createPatient('Test Patient 1', '555-0101', birthdate: DateTime(1990, 1, 1));
     final doctor = db.createDoctor('Test Doctor 1', '555-0201', 'Testing');
@@ -70,9 +69,7 @@ void main() {
     _deleteTestFiles();
   });
 
-
-  group('Domain Layer Tests (AppointmentService)', () {
-
+  group('Data Persistence & JSON', () {
     test('1. Data is persistent and reloaded', () {
       // We created two patients in setUp.
       expect(db.getAllPatients().length, 2);
@@ -84,7 +81,7 @@ void main() {
         appointmentsFile: testAppointmentsFile,
         prescriptionsFile: testPrescriptionsFile,
       );
-      
+
       // It should find the patients created by the first 'db' instance.
       expect(db2.getAllPatients().length, 2);
       expect(db2.getPatient(patientId)?.name, 'Test Patient 1');
@@ -95,7 +92,7 @@ void main() {
       // Data was created in setUp. Check if it exists.
       expect(db.getAllPatients().length, 2);
       expect(db.getAllDoctors().length, 2);
-      
+
       // Check if files were saved
       final patientFile = File(testPatientsFile);
       expect(patientFile.existsSync(), isTrue);
@@ -123,33 +120,35 @@ void main() {
         appointmentsFile: testAppointmentsFile,
         prescriptionsFile: testPrescriptionsFile,
       );
-      
+
       expect(db2.getPatient(patientId)?.name, 'Updated Patient Name');
       expect(db2.getDoctor(doctorId)?.specialty, 'Updated Specialty');
     });
+  });
 
+  // --- Test Group 2: Appointment Logic ---
+  group('Appointment Service', () {
     test('4. Schedule appointment (Success)', () {
-      final dateTime = DateTime.now().add(const Duration(days: 1));
+      final dateTime = DateTime(2025, 12, 25, 10, 00); // 10:00 AM (Valid slot)
       final result = service.scheduleAppointment(patientId, doctorId, dateTime);
 
       expect(result.success, isTrue);
       expect(result.appointment, isNotNull);
       expect(result.message, 'Appointment scheduled successfully.');
       expect(db.getAllAppointments().length, 1);
-      
-      // Check if file was saved
+
       final file = File(testAppointmentsFile);
       expect(file.existsSync(), isTrue);
       expect(file.readAsStringSync(), contains('AP000001'));
     });
 
     test('5. Fail to schedule (Doctor Busy)', () {
-      final dateTime = DateTime(2025, 11, 10, 14, 00); // 10 Nov 2025 @ 2 PM
-      
+      final dateTime = DateTime(2025, 11, 10, 14, 00); // 2:00 PM (Valid slot)
+
       // Schedule first appointment
       service.scheduleAppointment(patientId, doctorId, dateTime);
-      
-      // Try to schedule second appointment with a different patient, same doctor/time
+
+      // Try to schedule second appointment at the same time
       final result = service.scheduleAppointment(patient2Id, doctorId, dateTime);
 
       expect(result.success, isFalse);
@@ -157,100 +156,152 @@ void main() {
       expect(result.message, contains('Doctor is not available'));
       expect(db.getAllAppointments().length, 1); // Only one should exist
     });
-    
+
     test('6. Fail to schedule (Invalid Patient)', () {
-        final dateTime = DateTime.now().add(const Duration(days: 1));
-        final result = service.scheduleAppointment('invalid-id', doctorId, dateTime);
+      final dateTime = DateTime(2025, 12, 25, 10, 00);
+      final result = service.scheduleAppointment('invalid-id', doctorId, dateTime);
 
-        expect(result.success, isFalse);
-        expect(result.message, 'Patient not found.');
+      expect(result.success, isFalse);
+      expect(result.message, 'Patient not found.');
     });
 
-    test('7. Cancel appointment (Success)', () {
-       final dateTime = DateTime.now().add(const Duration(days: 2));
-       final result = service.scheduleAppointment(patientId, doctorId, dateTime);
-       
-       expect(result.success, isTrue);
-       final appId = result.appointment!.id;
+    test('7. Fail to schedule (Outside work hours)', () {
+      final dateTime = DateTime(2025, 12, 25, 7, 00); // 7:00 AM (Too early)
+      final result = service.scheduleAppointment(patientId, doctorId, dateTime);
 
-       final cancelSuccess = service.cancelAppointment(appId);
-       expect(cancelSuccess, isTrue);
-       
-       final appt = db.getAppointment(appId);
-       expect(appt?.status, equals(AppointmentStatus.cancelled));
+      expect(result.success, isFalse);
+      expect(result.message, contains('Doctor is not available'));
+
+      final dateTime2 = DateTime(2025, 12, 25, 17, 00); // 5:00 PM (Too late)
+      final result2 = service.scheduleAppointment(patientId, doctorId, dateTime2);
+      expect(result2.success, isFalse);
     });
 
-    test('8. Issue prescription (Success)', () {
+    test('8. Cancel appointment (Success)', () {
+      final dateTime = DateTime(2025, 12, 25, 11, 00);
+      final result = service.scheduleAppointment(patientId, doctorId, dateTime);
+
+      expect(result.success, isTrue);
+      final appId = result.appointment!.id;
+
+      final cancelSuccess = service.cancelAppointment(appId);
+      expect(cancelSuccess, isTrue);
+
+      final appt = db.getAppointment(appId);
+      expect(appt?.status, equals(AppointmentStatus.cancelled));
+    });
+
+    test('9. Fail to reschedule (Doctor Busy at new time)', () {
+      final originalTime = DateTime(2025, 12, 27, 9, 00);
+      final busyTime = DateTime(2025, 12, 27, 10, 00);
+
+      // Schedule first appointment for patientId with doctorId
+      final scheduleResult = service.scheduleAppointment(patientId, doctorId, originalTime);
+      expect(scheduleResult.success, isTrue);
+      final appointmentId = scheduleResult.appointment!.id;
+
+      // Schedule another appointment for doctorId at the busy time with patient2Id
+      service.scheduleAppointment(patient2Id, doctorId, busyTime);
+
+      // Verify original appointment time has not changed
+      final currentAppt = db.getAppointment(appointmentId);
+      expect(currentAppt?.start, equals(originalTime));
+    });
+
+    test('10. Fail to reschedule (Patient Busy at new time)', () {
+      final originalTime = DateTime(2025, 12, 28, 9, 00);
+      final busyTime = DateTime(2025, 12, 28, 10, 00);
+
+      // Schedule first appointment for patientId with doctorId
+      final scheduleResult = service.scheduleAppointment(patientId, doctorId, originalTime);
+      expect(scheduleResult.success, isTrue);
+      final appointmentId = scheduleResult.appointment!.id;
+
+      // Schedule another appointment for patientId at the busy time with doctor2Id
+      service.scheduleAppointment(patientId, doctor2Id, busyTime);
+
+      // Verify original appointment time has not changed
+      final currentAppt = db.getAppointment(appointmentId);
+      expect(currentAppt?.start, equals(originalTime));
+    });
+  });
+
+  // --- Test Group 3: Prescription Logic ---
+  group('Prescription Service', () {
+    test('12. Issue prescription (Success)', () { // Renumbered from 9 to 13
       final medications = [
-        Medication(name: 'TestMed', dosage: '100mg', days: 7)
+        Medication(name: 'TestMed', dosage: '100mg', days: 7),
+        Medication(name: 'TestMed2', dosage: '50mg', days: 3),
       ];
-      final result = service.issuePrescription(patientId, doctorId, medications);
-      
+      final result = service.issuePrescription(patientId, doctorId, medications, notes: 'Test notes');
+
       expect(result.success, isTrue);
       expect(result.prescription, isNotNull);
+      expect(result.prescription?.medications.length, 2);
       expect(result.prescription?.medications.first.name, 'TestMed');
       expect(db.getPrescriptionsForPatient(patientId).length, 1);
 
-      // Check if file was saved
       final file = File(testPrescriptionsFile);
       expect(file.existsSync(), isTrue);
       expect(file.readAsStringSync(), contains('PR000001'));
+      expect(file.readAsStringSync(), contains('TestMed2'));
     });
 
-    test('9. Fail to issue (Invalid Doctor)', () {
+    test('13. Fail to issue (Invalid Doctor)', () { // Renumbered from 10 to 14
       final medications = [
         Medication(name: 'TestMed', dosage: '100mg', days: 7)
       ];
       final result = service.issuePrescription(patientId, 'invalid-doctor', medications);
-      
+
       expect(result.success, isFalse);
       expect(result.message, 'Doctor not found.');
       expect(db.getPrescriptionsForPatient(patientId).length, 0);
     });
+  });
 
-    test('10. Delete Patient & cancel appointments', () {
-      // 1. Create an appointment
-      final dateTime = DateTime.now().add(const Duration(days: 1));
+  // --- Test Group 4: Deletion Logic ---
+  group('Deletion Service', () {
+    test('14. Delete Patient & cancel their appointments', () { // Renumbered from 11 to 15
+      final dateTime = DateTime(2025, 12, 25, 10, 00);
       final apptResult = service.scheduleAppointment(patientId, doctorId, dateTime);
       final appId = apptResult.appointment!.id;
-      
+
       expect(db.getAllPatients().length, 2);
       expect(db.getAllAppointments().length, 1);
       expect(db.getAppointment(appId)?.status, AppointmentStatus.scheduled);
 
-      // 2. Delete the patient
+      // Delete the patient
       final deleteSuccess = service.deletePatientAndCancelAppointments(patientId);
       expect(deleteSuccess, isTrue);
 
-      // 3. Check results
+      // Check results
       expect(db.getAllPatients().length, 1); // Patient is gone
       expect(db.getPatient(patientId), isNull);
       expect(db.getPatient(patient2Id), isNotNull); // Other patient is safe
-      
+
       // Appointment still exists (for history) but is cancelled
       final appt = db.getAppointment(appId);
       expect(appt, isNotNull);
       expect(appt?.status, AppointmentStatus.cancelled);
     });
 
-    test('11. Delete Doctor & cancel appointments', () {
-      // 1. Create an appointment
-      final dateTime = DateTime.now().add(const Duration(days: 1));
+    test('15. Delete Doctor & cancel their appointments', () { // Renumbered from 12 to 16
+      final dateTime = DateTime(2025, 12, 25, 10, 00);
       final apptResult = service.scheduleAppointment(patientId, doctorId, dateTime);
       final appId = apptResult.appointment!.id;
-      
+
       expect(db.getAllDoctors().length, 2);
       expect(db.getAllAppointments().length, 1);
 
-      // 2. Delete the doctor
+      // Delete the doctor
       final deleteSuccess = service.deleteDoctorAndCancelAppointments(doctorId);
       expect(deleteSuccess, isTrue);
 
-      // 3. Check results
+      // Check results
       expect(db.getAllDoctors().length, 1); // Doctor is gone
       expect(db.getDoctor(doctorId), isNull);
       expect(db.getDoctor(doctor2Id), isNotNull); // Other doctor is safe
-      
+
       // Appointment is cancelled
       final appt = db.getAppointment(appId);
       expect(appt, isNotNull);
