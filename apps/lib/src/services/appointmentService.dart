@@ -2,7 +2,7 @@ import 'package:apps/src/domains/appointment.dart';
 import 'package:apps/src/database/database.dart';
 import 'package:apps/src/domains/prescription.dart';
 import 'package:apps/src/domains/medication.dart';
-import 'package:apps/src/services/scedule.dart';
+import 'package:apps/src/domains/scedule.dart';
 import '../domains/appointmentStatus.dart';
 
 // Domain Service - Contains main business logic
