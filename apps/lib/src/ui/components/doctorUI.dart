@@ -1,6 +1,6 @@
 import 'package:apps/src/database/database.dart';
 import 'package:apps/src/ui/consoleUtils.dart';
-import 'package:apps/src/domains/appointmentService.dart';
+import 'package:apps/src/services/appointmentService.dart';
 
 class Doctorui {
   final Database _db;

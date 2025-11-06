@@ -3,7 +3,7 @@ import 'package:apps/src/database/database.dart';
 import 'package:apps/src/domains/prescription.dart';
 import 'package:apps/src/domains/medication.dart';
 import 'package:apps/src/domains/scedule.dart';
-import 'appointmentStatus.dart';
+import '../domains/appointmentStatus.dart';
 
 // Domain Service - Contains main business logic
 class AppointmentService {
@@ -175,7 +175,6 @@ class AppointmentService {
     // 1. Get all 1-hour slots for the day (8:00, 9:00, ..., 16:00)
     final allSlots = Schedule.getWorkSlotsForDay(date);
     final availableSlots = <DateTime>[];
-    const duration = Duration(hours: 1); // We are checking 1-hour slots
 
     // 2. Loop through each possible slot
     for (final slot in allSlots) {

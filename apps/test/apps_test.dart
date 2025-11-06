@@ -1,8 +1,9 @@
 // apps/test/apps_test.dart
 
 import 'dart:io';
-import 'package:apps/src/domains/appointment.dart';
-import 'package:apps/src/domains/appointmentService.dart';
+import 'package:apps/src/domains/appointmentStatus.dart';
+import 'package:apps/src/domains/medication.dart';
+import 'package:apps/src/services/appointmentService.dart';
 import 'package:test/test.dart';
 import 'package:apps/src/database/database.dart';
 
@@ -129,8 +130,7 @@ void main() {
 
     test('4. Schedule appointment (Success)', () {
       final dateTime = DateTime.now().add(const Duration(days: 1));
-      final duration = const Duration(minutes: 30);
-      final result = service.scheduleAppointment(patientId, doctorId, dateTime, duration);
+      final result = service.scheduleAppointment(patientId, doctorId, dateTime);
 
       expect(result.success, isTrue);
       expect(result.appointment, isNotNull);
@@ -145,13 +145,12 @@ void main() {
 
     test('5. Fail to schedule (Doctor Busy)', () {
       final dateTime = DateTime(2025, 11, 10, 14, 00); // 10 Nov 2025 @ 2 PM
-      final duration = const Duration(minutes: 30);
       
       // Schedule first appointment
-      service.scheduleAppointment(patientId, doctorId, dateTime, duration);
+      service.scheduleAppointment(patientId, doctorId, dateTime);
       
       // Try to schedule second appointment with a different patient, same doctor/time
-      final result = service.scheduleAppointment(patient2Id, doctorId, dateTime, duration);
+      final result = service.scheduleAppointment(patient2Id, doctorId, dateTime);
 
       expect(result.success, isFalse);
       expect(result.appointment, isNull);
@@ -161,8 +160,7 @@ void main() {
     
     test('6. Fail to schedule (Invalid Patient)', () {
         final dateTime = DateTime.now().add(const Duration(days: 1));
-        final duration = const Duration(minutes: 30);
-        final result = service.scheduleAppointment('invalid-id', doctorId, dateTime, duration);
+        final result = service.scheduleAppointment('invalid-id', doctorId, dateTime);
 
         expect(result.success, isFalse);
         expect(result.message, 'Patient not found.');
@@ -170,8 +168,7 @@ void main() {
 
     test('7. Cancel appointment (Success)', () {
        final dateTime = DateTime.now().add(const Duration(days: 2));
-       final duration = const Duration(minutes: 30);
-       final result = service.scheduleAppointment(patientId, doctorId, dateTime, duration);
+       final result = service.scheduleAppointment(patientId, doctorId, dateTime);
        
        expect(result.success, isTrue);
        final appId = result.appointment!.id;
@@ -184,7 +181,10 @@ void main() {
     });
 
     test('8. Issue prescription (Success)', () {
-      final result = service.issuePrescription(patientId, doctorId, 'TestMed', '100mg');
+      final medications = [
+        Medication(name: 'TestMed', dosage: '100mg', days: 7)
+      ];
+      final result = service.issuePrescription(patientId, doctorId, medications);
       
       expect(result.success, isTrue);
       expect(result.prescription, isNotNull);
@@ -198,7 +198,10 @@ void main() {
     });
 
     test('9. Fail to issue (Invalid Doctor)', () {
-      final result = service.issuePrescription(patientId, 'invalid-doctor', 'TestMed', '100mg');
+      final medications = [
+        Medication(name: 'TestMed', dosage: '100mg', days: 7)
+      ];
+      final result = service.issuePrescription(patientId, 'invalid-doctor', medications);
       
       expect(result.success, isFalse);
       expect(result.message, 'Doctor not found.');
@@ -208,8 +211,7 @@ void main() {
     test('10. Delete Patient & cancel appointments', () {
       // 1. Create an appointment
       final dateTime = DateTime.now().add(const Duration(days: 1));
-      final duration = const Duration(minutes: 30);
-      final apptResult = service.scheduleAppointment(patientId, doctorId, dateTime, duration);
+      final apptResult = service.scheduleAppointment(patientId, doctorId, dateTime);
       final appId = apptResult.appointment!.id;
       
       expect(db.getAllPatients().length, 2);
@@ -234,8 +236,7 @@ void main() {
     test('11. Delete Doctor & cancel appointments', () {
       // 1. Create an appointment
       final dateTime = DateTime.now().add(const Duration(days: 1));
-      final duration = const Duration(minutes: 30);
-      final apptResult = service.scheduleAppointment(patientId, doctorId, dateTime, duration);
+      final apptResult = service.scheduleAppointment(patientId, doctorId, dateTime);
       final appId = apptResult.appointment!.id;
       
       expect(db.getAllDoctors().length, 2);

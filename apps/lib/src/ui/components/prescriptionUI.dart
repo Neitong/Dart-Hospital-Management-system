@@ -1,5 +1,5 @@
 import 'package:apps/src/ui/consoleUtils.dart';
-import 'package:apps/src/domains/appointmentService.dart';
+import 'package:apps/src/services/appointmentService.dart';
 import '../../database/database.dart';
 import 'package:apps/src/domains/prescription.dart';
 import 'package:apps/src/domains/medication.dart';
