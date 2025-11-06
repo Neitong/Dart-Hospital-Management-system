@@ -1,4 +1,4 @@
-// lib/src/models/medication.model.dart
+// lib/src/models/medication.dart
 
 class Medication {
   final String name;

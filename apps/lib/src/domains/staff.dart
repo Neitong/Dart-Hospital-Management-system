@@ -1,8 +1,5 @@
-// lib/domain/staff.dart
+import 'package:apps/src/domains/person.dart';
 
-import 'package:apps/src/models/person.model.dart';
-
-// Abstract class demonstrating inheritance and polymorphism
 abstract class Staff extends Person {
   String staffId;
   String department;
@@ -14,7 +11,6 @@ abstract class Staff extends Person {
     required this.staffId,
     required this.department,
   });
-
-  // Abstract method for Polymorphism
+  
   String calculatePay();
 }

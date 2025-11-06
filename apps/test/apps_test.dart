@@ -1,8 +1,8 @@
 // apps/test/apps_test.dart
 
 import 'dart:io';
-import 'package:apps/src/models/appointment.model.dart';
-import 'package:apps/src/models/appointmentService.model.dart';
+import 'package:apps/src/domains/appointment.dart';
+import 'package:apps/src/domains/appointmentService.dart';
 import 'package:test/test.dart';
 import 'package:apps/src/database/database.dart';
 

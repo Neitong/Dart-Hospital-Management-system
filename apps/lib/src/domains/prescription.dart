@@ -1,9 +1,9 @@
 // lib/src/models/prescription.model.dart
 
 import 'package:apps/src/database/database.dart';
-import 'package:apps/src/models/doctor.model.dart';
-import 'package:apps/src/models/patient.model.dart';
-import 'package:apps/src/models/medication.model.dart';
+import 'package:apps/src/domains/doctor.dart';
+import 'package:apps/src/domains/patient.dart';
+import 'package:apps/src/domains/medication.dart';
 
 class Prescription {
   final String id;

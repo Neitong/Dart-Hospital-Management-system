@@ -1,0 +1,34 @@
+[
+ {
+  "id": "AP000001",
+  "patientId": "PT000001",
+  "doctorId": "DR000001",
+  "start": "2027-02-04T08:00:00.000",
+  "status": "scheduled",
+  "notes": ""
+ },
+ {
+  "id": "AP000002",
+  "patientId": "PT000001",
+  "doctorId": "DR000001",
+  "start": "2027-02-04T09:00:00.000",
+  "status": "cancelled",
+  "notes": ""
+ },
+ {
+  "id": "AP000003",
+  "patientId": "PT000001",
+  "doctorId": "DR000002",
+  "start": "2025-12-20T08:00:00.000",
+  "status": "scheduled",
+  "notes": ""
+ },
+ {
+  "id": "AP000004",
+  "patientId": "PT000004",
+  "doctorId": "DR000003",
+  "start": "2025-11-07T08:00:00.000",
+  "status": "cancelled",
+  "notes": ""
+ }
+]
