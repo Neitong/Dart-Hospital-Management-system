@@ -4,7 +4,7 @@ import 'package:apps/src/ui/consoleUtils.dart';
 import 'package:apps/src/domains/prescription.dart';
 import 'package:apps/src/domains/patient.dart';
 import 'package:apps/src/domains/medication.dart';
-import 'package:apps/src/domains/scedule.dart';
+import 'package:apps/src/services/scedule.dart';
 import 'appointmentStatus.dart';
 
 
