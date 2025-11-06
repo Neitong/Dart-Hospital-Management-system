@@ -8,20 +8,20 @@ import 'package:apps/src/domains/patient.dart';
 import 'package:apps/src/domains/prescription.dart';
 import 'package:apps/src/domains/medication.dart';
 
-// Data Layer - Manages data storage (JSON files)
+/// Data Layer - Manages data storage (JSON files)
 class Database {
   final Map<String, Patient> _patients = {};
   final Map<String, Doctor> _doctors = {};
   final Map<String, Appointment> _appointments = {};
   final Map<String, Prescription> _prescriptions = {}; // ADDED
 
- // File paths
+ /// File paths
   final String _patientsFile;
   final String _doctorsFile;
   final String _appointmentsFile;
   final String _prescriptionsFile;
 
-  // Counters
+  /// Counters
   int _patientCounter = 1;
   int _doctorCounter = 1;
   int _appointmentCounter = 1;
@@ -29,7 +29,7 @@ class Database {
 
   Database({
     String patientsFile = 'data/patients.json',
-    String doctorsFile = 'data/doctors.json',
+    String doctorsFile = 'doctors.json',
     String appointmentsFile = 'data/appointments.json',
     String prescriptionsFile = 'data/prescriptions.json',
   })  : _patientsFile = patientsFile,
@@ -39,11 +39,10 @@ class Database {
     _loadData();
   }
 
-  // --- Private Load/Save Methods ---
-
+  /// --- Load Data ---
   void _loadData() {
     try {
-      // 1. Load Patients
+      /// 1. Load Patients
       final patientsList = _loadFromFile(_patientsFile);
       for (var json in patientsList) {
         final patient = Patient.fromJson(json);
@@ -51,7 +50,7 @@ class Database {
       }
       _patientCounter = _getNextCounter(_patients.keys, 'PT');
 
-      // 2. Load Doctors
+      /// 2. Load Doctors
       final doctorsList = _loadFromFile(_doctorsFile);
       for (var json in doctorsList) {
         final doctor = Doctor.fromJson(json);
@@ -59,7 +58,7 @@ class Database {
       }
       _doctorCounter = _getNextCounter(_doctors.keys, 'DR');
 
-      // 3. Load Appointments
+      /// 3. Load Appointments
       final appointmentsList = _loadFromFile(_appointmentsFile);
       for (var json in appointmentsList) {
         final appointment = Appointment.fromJson(json);
@@ -67,7 +66,7 @@ class Database {
       }
       _appointmentCounter = _getNextCounter(_appointments.keys, 'AP');
       
-      // 4. Load Prescriptions
+      /// 4. Load Prescriptions
       final prescriptionsList = _loadFromFile(_prescriptionsFile);
       for (var json in prescriptionsList) {
         final prescription = Prescription.fromJson(json);
@@ -75,20 +74,20 @@ class Database {
       }
       _prescriptionCounter = _getNextCounter(_prescriptions.keys, 'PR');
 
-      // 5. Link models (Re-hydration)
+      /// 5. Link models after loading data
       for (final appointment in _appointments.values) {
         appointment.linkModels(this);
         appointment.patient.addAppointment(appointment);
         appointment.doctor.scheduleAppointment(appointment);
       }
-       for (final prescription in _prescriptions.values) {
+
+      for (final prescription in _prescriptions.values) {
         prescription.linkModels(this);
         prescription.patient.receivePrescription(prescription);
       }
 
     } catch (e) {
       print('Error loading data (files might not exist yet): $e');
-      seedData(); // If loading fails, seed initial data and save it
     }
   }
 
@@ -130,7 +129,7 @@ class Database {
     return maxId + 1;
   }
 
-  // --- Patient Methods ---
+  /// --- Patient Methods ---
   Patient createPatient(String name, String contact, {DateTime? birthdate}) {
     final newId = 'PT${(_patientCounter++).toString().padLeft(6, '0')}';
     final patient = Patient(
@@ -266,31 +265,5 @@ class Database {
     return _prescriptions.values
         .where((p) => p.patientId == patientId)
         .toList();
-  }
-
-  // --- Seeding utility ---
-  void seedData() {
-    if (_patients.isEmpty && _doctors.isEmpty) {
-      print('Seeding initial data...');
-      final drHouse =
-          createDoctor('Gregory House', '555-0101', 'Diagnostician');
-      createDoctor('Lisa Cuddy', '555-0102', 'Endocrinology');
-
-      final patientJohn =
-          createPatient('John Doe', '555-0201', 
-              birthdate: DateTime(1990, 5, 15));
-      createPatient('Jane Smith', '555-0202',
-              birthdate: DateTime(1985, 8, 22));
-
-      final time = DateTime.now().add(const Duration(days: 1, hours: 2));
-      createAppointment(patientJohn, drHouse, time);
-      
-      final medications = [
-        Medication(name: 'Vicodin', dosage: '500mg', days: 7),
-      ];
-      createPrescription(patientJohn, drHouse, medications, notes: 'Take with food');
-      
-      print('Seeding complete. Data saved to .json files.');
-    }
   }
 }

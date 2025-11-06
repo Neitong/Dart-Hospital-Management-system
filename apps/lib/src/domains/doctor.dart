@@ -4,7 +4,7 @@ import 'package:apps/src/ui/consoleUtils.dart';
 import 'package:apps/src/domains/prescription.dart';
 import 'package:apps/src/domains/patient.dart';
 import 'package:apps/src/domains/medication.dart';
-import 'package:apps/src/domains/scedule.dart';
+import 'package:apps/src/domains/utils/scedule.dart';
 import 'appointmentStatus.dart';
 
 
@@ -102,13 +102,6 @@ class Doctor extends Staff {
           : null,
       department: json['department'],
     );
-
-    if(json['appointments'] != null) {
-      final appointmentsData = json['appointments'] as List;
-      for (var appointmentJson in appointmentsData) {
-        doctor.scheduleAppointment(Appointment.fromJson(appointmentJson));
-      }
-    }
 
     return doctor;
   }

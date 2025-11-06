@@ -62,6 +62,8 @@ class Appointment {
         return 'Completed';
       case AppointmentStatus.cancelled:
         return 'Cancelled';
+      default:
+        return 'Unknown';
     }
   }
 

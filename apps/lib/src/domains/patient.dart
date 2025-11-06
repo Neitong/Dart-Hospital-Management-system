@@ -16,7 +16,7 @@ class Patient extends Person {
     required this.birthdate,
   });
 
-  //Enscapulation
+  //Encapsulation
    List<Appointment> get appointments => List.unmodifiable(_appointments);
    List<Prescription> get prescriptions => List.unmodifiable(_prescriptions);
 
@@ -26,7 +26,7 @@ class Patient extends Person {
   }
 
   /// Adds a new [Appointment] to the patient's schedule.
-  void addAppointment(Appointment appointment) {
+  void scheduleAppointment(Appointment appointment) {
     _appointments.add(appointment);
   }
 
@@ -65,10 +65,13 @@ class Patient extends Person {
       contact: json['contact'],
       birthdate: json['birthdate'] != null 
           ? DateTime.parse(json['birthdate'])
-          : DateTime.now().subtract(const Duration(days: 365 * 30)), // Default to 30 years ago
+          : DateTime(1990, 1, 1),
     );
 
     return patient;
   }
 
+  void addAppointment(Appointment appointment) {
+    _appointments.add(appointment);
+  }
 }

@@ -1,4 +1,3 @@
-// apps/lib/src/models/schedule.model.dart
 
 class Schedule {
   static const int workStartHour = 8;
