@@ -1,16 +1,13 @@
-// lib/domain/patient.dart
-
-import 'package:apps/src/models/appointment.model.dart';
-import 'package:apps/src/models/person.model.dart';
+import 'package:apps/src/domains/appointment.dart';
+import 'package:apps/src/domains/person.dart';
 import 'package:apps/src/ui/consoleUtils.dart';
-import 'package:apps/src/models/prescription.dart';
-import 'package:apps/src/models/doctor.model.dart';
+import 'package:apps/src/domains/prescription.dart';
+import 'package:apps/src/domains/doctor.dart';
 
 class Patient extends Person {
   DateTime birthdate;
   final List<Appointment> _appointments = [];
   final List<Prescription> _prescriptions = [];
-
 
   Patient({
     required super.id,
@@ -19,35 +16,37 @@ class Patient extends Person {
     required this.birthdate,
   });
 
-  // Encapsulation
-  List<Appointment> get appointments => List.unmodifiable(_appointments);
-  List<Prescription> get prescriptions => List.unmodifiable(_prescriptions);
+  //Enscapulation
+   List<Appointment> get appointments => List.unmodifiable(_appointments);
+   List<Prescription> get prescriptions => List.unmodifiable(_prescriptions);
+
 
   void requestAppointment(Doctor doctor, DateTime start, Duration duration) {
-    // This method could be used to create an appointment request
-    // Implementation would involve creating the appointment and adding it
     print('Requesting appointment with Dr. ${doctor.name} on ${start.toString()}');
   }
 
+  /// Adds a new [Appointment] to the patient's schedule.
   void addAppointment(Appointment appointment) {
     _appointments.add(appointment);
   }
 
+  /// Cancels an appointment by its unique [appointmentId].
   void cancelAppointment(String appointmentId) {
     _appointments.removeWhere((appt) => appt.id == appointmentId);
   }
 
+  /// Adds a new [Prescription] to the patient's record.
   void receivePrescription(Prescription prescription) {
     _prescriptions.add(prescription);
   }
 
-@override
+  @override
   void display() {
-    // UPDATED to use `id` directly
-    print(
-        '  ID: ${ConsoleUtils.pad(id, 10)} Name: ${ConsoleUtils.pad(name, 20)} Contact: ${ConsoleUtils.pad(contact, 14)} DOB: ${birthdate.toIso8601String().split('T')[0]}');
+    print('  ID: ${ConsoleUtils.pad(id, 10)} Name: ${ConsoleUtils.pad(name, 20)} Contact: ${ConsoleUtils.pad(contact, 14)} DOB: ${birthdate.toIso8601String().split('T')[0]}');
   }
 
+  /// Converts the [Patient] object into a JSON-compatible map.
+  ///includes the serializing patient's appointments.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -57,8 +56,10 @@ class Patient extends Person {
     };
   }
 
+  /// Creates a [Patient] instance from a JSON map.
+  ///includes deserializing the patient's appointments.
   factory Patient.fromJson(Map<String, dynamic> json) {
-    return Patient(
+    final patient = Patient(
       id: json['id'],
       name: json['name'],
       contact: json['contact'],
@@ -66,6 +67,8 @@ class Patient extends Person {
           ? DateTime.parse(json['birthdate'])
           : DateTime.now().subtract(const Duration(days: 365 * 30)), // Default to 30 years ago
     );
+
+    return patient;
   }
 
 }

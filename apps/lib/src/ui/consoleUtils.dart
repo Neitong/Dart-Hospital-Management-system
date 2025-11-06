@@ -35,16 +35,20 @@ class ConsoleUtils {
 
   static String readInput(String prompt, {bool allowEmpty = false}) {
     String? input;
-    while (input == null || (!allowEmpty && input.isEmpty)) {
+    while (true) {
       stdout.write('$yellow$prompt$reset');
       input = stdin.readLineSync();
 
-      if (!allowEmpty && (input == null || input.isEmpty)) {
+      if (input == null) { // Handle null input (e.g., end-of-file)
+        return '';
+      }
+
+      if (!allowEmpty && input.isEmpty) {
         printError('Input cannot be empty. Please try again.');
+      } else {
+        return input; // Return valid input (empty or not)
       }
     }
-    // Return the input, which could be empty if allowEmpty was true
-    return input;
   }
 
   static int? readInt(String prompt) {
@@ -80,5 +84,32 @@ class ConsoleUtils {
       return text.padLeft(width);
     }
     return text.padRight(width);
+  }
+
+  static List<String> wrapText(String text, int width) {
+    if (text.isEmpty) {
+      return [''];
+    }
+    List<String> lines = [];
+    List<String> words = text.split(' ');
+    String currentLine = '';
+
+    for (String word in words) {
+      if ((currentLine.length + word.length + (currentLine.isEmpty ? 0 : 1)) <= width) {
+        // Add word to current line
+        if (currentLine.isNotEmpty) {
+          currentLine += ' ';
+        }
+        currentLine += word;
+      } else {
+        // Current line is full, start a new one
+        lines.add(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine.isNotEmpty) {
+      lines.add(currentLine);
+    }
+    return lines;
   }
 }

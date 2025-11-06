@@ -1,9 +1,9 @@
-import 'package:apps/src/models/appointment.model.dart';
+import 'package:apps/src/domains/appointment.dart';
 import 'package:apps/src/database/database.dart';
-import 'package:apps/src/models/prescription.dart';
-import 'package:apps/src/models/medication.model.dart';
-
-
+import 'package:apps/src/domains/prescription.dart';
+import 'package:apps/src/domains/medication.dart';
+import 'package:apps/src/domains/scedule.dart';
+import 'appointmentStatus.dart';
 
 // Domain Service - Contains main business logic
 class AppointmentService {
@@ -13,7 +13,9 @@ class AppointmentService {
 
   // Result sealed class for better error handling
   ScheduleAppointmentResult scheduleAppointment(
-      String patientId, String doctorId, DateTime dateTime, Duration duration) {
+      String patientId,
+      String doctorId,
+      DateTime dateTime) {
     final patient = _db.getPatient(patientId);
     if (patient == null) {
       return ScheduleAppointmentResult(
@@ -27,11 +29,10 @@ class AppointmentService {
     }
 
     // Business Rule: Check if doctor is available
-    if (!doctor.isAvailable(dateTime, duration)) {
+    if (!doctor.isAvailable(dateTime)) {
       return ScheduleAppointmentResult(
           success: false,
-          message:
-              'Doctor is not available at this time. Please choose another slot.');
+          message: 'Doctor is not available at this time. Please choose another slot.');
     }
 
     // Business Rule: Check if patient is available
@@ -40,11 +41,10 @@ class AppointmentService {
         appt.status == AppointmentStatus.scheduled)) {
       return ScheduleAppointmentResult(
           success: false,
-          message:
-              'Patient already has an appointment at this time.');
+          message: 'Patient already has an appointment at this time.');
     }
 
-    final appointment = _db.createAppointment(patient, doctor, dateTime, duration);
+    final appointment = _db.createAppointment(patient, doctor, dateTime);
     if (appointment != null) {
       return ScheduleAppointmentResult(
           success: true,
@@ -57,8 +57,8 @@ class AppointmentService {
   }
 
   IssuePrescriptionResult issuePrescription(
-    String patientId, String doctorId, String medication, String dosage, {int days = 7}) {
-    
+      String patientId, String doctorId, List<Medication> medications, {String? notes}) { // Changed to List<Medication>
+
     final patient = _db.getPatient(patientId);
     if (patient == null) {
       return IssuePrescriptionResult(
@@ -71,16 +71,13 @@ class AppointmentService {
           success: false, message: 'Doctor not found.');
     }
 
-    if (medication.isEmpty || dosage.isEmpty) {
-       return IssuePrescriptionResult(
+    if (medications.isEmpty) { // Check if list is empty
+      return IssuePrescriptionResult(
           success: false, message: 'Medication and Dosage cannot be empty.');
     }
 
-    final medications = [
-      Medication(name: medication, dosage: dosage, days: days),
-    ];
-    final prescription = _db.createPrescription(patient, doctor, medications);
-    
+    final prescription = _db.createPrescription(patient, doctor, medications, notes: notes); // Pass the list
+
     if (prescription != null) {
       return IssuePrescriptionResult(
           success: true,
@@ -91,7 +88,6 @@ class AppointmentService {
           success: false, message: 'Failed to create prescription in database.');
     }
   }
-
   bool deletePatientAndCancelAppointments(String patientId) {
     final patient = _db.getPatient(patientId);
     if (patient == null) {
@@ -168,6 +164,27 @@ class AppointmentService {
             .where((appt) => appt.status == AppointmentStatus.scheduled)
             .toList() ??
         [];
+  }
+
+  List<DateTime> getAvailableSlots(String doctorId, DateTime date) {
+    final doctor = _db.getDoctor(doctorId);
+    if (doctor == null) {
+      return [];
+    }
+
+    // 1. Get all 1-hour slots for the day (8:00, 9:00, ..., 16:00)
+    final allSlots = Schedule.getWorkSlotsForDay(date);
+    final availableSlots = <DateTime>[];
+    const duration = Duration(hours: 1); // We are checking 1-hour slots
+
+    // 2. Loop through each possible slot
+    for (final slot in allSlots) {
+      // 3. Ask the doctor object if they are available for 1 hour
+      if (doctor.isAvailable(slot)) {
+        availableSlots.add(slot);
+      }
+    }
+    return availableSlots;
   }
 }
 

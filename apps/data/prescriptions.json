@@ -1,0 +1,59 @@
+[
+ {
+  "id": "PR000001",
+  "patientId": "PT000001",
+  "doctorId": "DR000001",
+  "date": "2025-11-05T18:47:33.841016",
+  "medications": [
+   {
+    "name": "None",
+    "dosage": "500mg, 1 tablet 2x/day",
+    "days": 7
+   }
+  ],
+  "notes": null
+ },
+ {
+  "id": "PR000002",
+  "patientId": "PT000001",
+  "doctorId": "DR000001",
+  "date": "2025-11-06T15:23:15.448717",
+  "medications": [
+   {
+    "name": "Acrivastine",
+    "dosage": "500mg",
+    "days": 3
+   },
+   {
+    "name": "Anti-cold",
+    "dosage": "500mg",
+    "days": 7
+   }
+  ],
+  "notes": "Anti-cold are used to treat or prevent some types of bacterial infection. They work by killing bacteria or preventing them from spreading. But they do not work for everything."
+ },
+ {
+  "id": "PR000003",
+  "patientId": "PT000003",
+  "doctorId": "DR000001",
+  "date": "2025-11-06T15:32:57.561348",
+  "medications": [
+   {
+    "name": "Anti-cold",
+    "dosage": "500mg",
+    "days": 7
+   },
+   {
+    "name": "Panadold",
+    "dosage": "500mg",
+    "days": 7
+   },
+   {
+    "name": "Doliprane",
+    "dosage": "500mg",
+    "days": 7
+   }
+  ],
+  "notes": ""
+ }
+]

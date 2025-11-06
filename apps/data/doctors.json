@@ -1,0 +1,46 @@
+[
+ {
+  "id": "DR000001",
+  "name": "Johny Doc",
+  "contact": "011121123",
+  "staffId": "DR000001",
+  "specialty": "Neurologist",
+  "specializations": [
+   "Software Engineering"
+  ],
+  "department": "Medical"
+ },
+ {
+  "id": "DR000002",
+  "name": "Anita kun",
+  "contact": "09342055139",
+  "staffId": "DR000002",
+  "specialty": "Hematologist",
+  "specializations": [
+   "General Medicine"
+  ],
+  "department": "Medical"
+ },
+ {
+  "id": "DR000003",
+  "name": "Ly Sovann",
+  "contact": "0977278789",
+  "staffId": "DR000003",
+  "specialty": "General Doctor",
+  "specializations": [
+   "General Doctor"
+  ],
+  "department": "Medical"
+ },
+ {
+  "id": "DR000004",
+  "name": "Chey Theavy",
+  "contact": "0978989123",
+  "staffId": "DR000004",
+  "specialty": "Veterinarian",
+  "specializations": [
+   "Veterinarian"
+  ],
+  "department": "Medical"
+ }
+]

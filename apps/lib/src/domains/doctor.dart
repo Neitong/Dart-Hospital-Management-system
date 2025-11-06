@@ -1,11 +1,12 @@
-// lib/domain/doctor.dart
-
-import 'package:apps/src/models/appointment.model.dart';
-import 'package:apps/src/models/staff.model.dart';
+import 'package:apps/src/domains/appointment.dart';
+import 'package:apps/src/domains/staff.dart';
 import 'package:apps/src/ui/consoleUtils.dart';
-import 'package:apps/src/models/prescription.dart';
-import 'package:apps/src/models/patient.model.dart';
-import 'package:apps/src/models/medication.model.dart';
+import 'package:apps/src/domains/prescription.dart';
+import 'package:apps/src/domains/patient.dart';
+import 'package:apps/src/domains/medication.dart';
+import 'package:apps/src/domains/scedule.dart';
+import 'appointmentStatus.dart';
+
 
 class Doctor extends Staff {
   String specialty;
@@ -33,19 +34,29 @@ class Doctor extends Staff {
     _appointments.removeWhere((appt) => appt.id == appointmentId);
   }
 
-  bool isAvailable(DateTime start, Duration duration) {
-    // Check if the doctor has another appointment at the same time
-    final end = start.add(duration);
+  // Checking doctor are available or not!
+  bool isAvailable(DateTime start) {
+    //Check the doctor During work Hour from 8:00 AM to 5:00PM
+    if (!Schedule.isDuringWorkHours(start)) {
+      return false;
+    }
+
     return !_appointments.any((appt) {
       if (appt.status != AppointmentStatus.scheduled) return false;
-      final apptEnd = appt.start.add(appt.duration);
-      // Check for overlap: appointment starts before end time and ends after start time
-      return appt.start.isBefore(end) && apptEnd.isAfter(start);
+      // Check if the start time of the existing appointment is the same
+      return appt.start.year == start.year &&
+          appt.start.month == start.month &&
+          appt.start.day == start.day &&
+          appt.start.hour == start.hour;
     });
   }
 
+  //Create prescription
   Prescription createPrescription(
-      String prescriptionId, Patient patient, List<Medication> medications, String? notes) {
+      String prescriptionId,
+      Patient patient, 
+      List<Medication> medications, 
+      String? notes) {
     final prescription = Prescription(
       id: prescriptionId,
       patientId: patient.id,
@@ -59,14 +70,11 @@ class Doctor extends Staff {
 
   @override
   void display() {
-    // UPDATED to use `id` directly
-    print(
-        '  ID: ${ConsoleUtils.pad(id, 10)} Name: ${ConsoleUtils.pad('Dr. ' + name, 20)} Specialty: ${ConsoleUtils.pad(specialty, 17)} Contact: $contact');
+    print('  ID: ${ConsoleUtils.pad(id, 10)} Name: ${ConsoleUtils.pad('Dr. ' + name, 20)} Specialty: ${ConsoleUtils.pad(specialty, 17)} Contact: $contact');
   }
 
   @override
   String calculatePay() {
-    // Polymorphism example: A doctor's pay calculation would be specific
     return "Calculated pay for Doctor (Specialty: $specialty)";
   }
 
@@ -83,7 +91,7 @@ class Doctor extends Staff {
   }
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
-    return Doctor(
+    final doctor = Doctor(
       id: json['id'],
       name: json['name'],
       contact: json['contact'],
@@ -94,5 +102,14 @@ class Doctor extends Staff {
           : null,
       department: json['department'],
     );
+
+    if(json['appointments'] != null) {
+      final appointmentsData = json['appointments'] as List;
+      for (var appointmentJson in appointmentsData) {
+        doctor.scheduleAppointment(Appointment.fromJson(appointmentJson));
+      }
+    }
+
+    return doctor;
   }
 }

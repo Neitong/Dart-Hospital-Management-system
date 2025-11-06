@@ -2,11 +2,11 @@
 
 import 'dart:io';
 import 'dart:convert';
-import 'package:apps/src/models/appointment.model.dart';
-import 'package:apps/src/models/doctor.model.dart';
-import 'package:apps/src/models/patient.model.dart';
-import 'package:apps/src/models/prescription.dart';
-import 'package:apps/src/models/medication.model.dart';
+import 'package:apps/src/domains/appointment.dart';
+import 'package:apps/src/domains/doctor.dart';
+import 'package:apps/src/domains/patient.dart';
+import 'package:apps/src/domains/prescription.dart';
+import 'package:apps/src/domains/medication.dart';
 
 // Data Layer - Manages data storage (JSON files)
 class Database {
@@ -198,20 +198,21 @@ class Database {
   }
 
   // --- Appointment Methods ---
-  Appointment? createAppointment(Patient patient, Doctor doctor, DateTime start, Duration duration) {
+  Appointment? createAppointment(Patient patient, Doctor doctor, DateTime start) {
     final newId = 'AP${(_appointmentCounter++).toString().padLeft(6, '0')}';
+
     final appointment = Appointment(
       id: newId,
-      patientId: patient, // Store ID
-      doctorId: doctor,   // Store ID
+      patientId: patient.id, 
+      doctorId: doctor.id,   
       start: start,
-      duration: duration,
     );
-    appointment.linkModels(this); // Link runtime objects
+
+    appointment.linkModels(this); 
     _appointments[appointment.id] = appointment;
     patient.addAppointment(appointment);
     doctor.scheduleAppointment(appointment);
-    _saveToFile(_appointmentsFile, _appointments); // Save changes
+    _saveToFile(_appointmentsFile, _appointments); 
     return appointment;
   }
 
@@ -238,8 +239,13 @@ class Database {
   
   // --- Prescription Methods (NEW) ---
   Prescription? createPrescription(
-    Patient patient, Doctor doctor, List<Medication> medications, {String? notes}) {
+      Patient patient,
+      Doctor doctor,
+      List<Medication> medications,
+      {String? notes}) {
+
     final newId = 'PR${(_prescriptionCounter++).toString().padLeft(6, '0')}';
+
     final prescription = Prescription(
       id: newId,
       patientId: patient.id,
@@ -248,6 +254,7 @@ class Database {
       medications: medications,
       notes: notes,
     );
+
     prescription.linkModels(this); // Link runtime objects
     _prescriptions[prescription.id] = prescription;
     patient.receivePrescription(prescription);
@@ -276,7 +283,7 @@ class Database {
               birthdate: DateTime(1985, 8, 22));
 
       final time = DateTime.now().add(const Duration(days: 1, hours: 2));
-      createAppointment(patientJohn, drHouse, time, const Duration(minutes: 30));
+      createAppointment(patientJohn, drHouse, time);
       
       final medications = [
         Medication(name: 'Vicodin', dosage: '500mg', days: 7),

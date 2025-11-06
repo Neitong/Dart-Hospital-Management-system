@@ -1,18 +1,13 @@
-// lib/domain/appointment.dart
-
-import 'package:apps/src/models/patient.model.dart';
-import 'package:apps/src/models/doctor.model.dart';
+import 'package:apps/src/domains/patient.dart';
+import 'package:apps/src/domains/doctor.dart';
 import 'package:apps/src/database/database.dart';
-
-
-enum AppointmentStatus { scheduled, completed, cancelled }
+import 'appointmentStatus.dart';
 
 class Appointment {
   final String id;
-  final Patient patientId;
-  final Doctor doctorId;
+  final String patientId;
+  final String doctorId;
   final DateTime start;
-  final Duration duration;
   AppointmentStatus status;
   String notes;
 
@@ -24,14 +19,13 @@ class Appointment {
     required this.patientId,
     required this.doctorId,
     required this.start,
-    required this.duration,
     this.status = AppointmentStatus.scheduled,
     this.notes = '',
   });
 
   void linkModels(Database db) {
-    final pat = db.getPatient(patientId.id);
-    final doc = db.getDoctor(doctorId.id);
+    final pat = db.getPatient(patientId);
+    final doc = db.getDoctor(doctorId);
     if (pat == null || doc == null) {
       throw Exception('Failed to link appointment $id: Patient or Doctor not found.');
     }
@@ -45,7 +39,7 @@ class Appointment {
     print('  - Doctor: Dr. ${doctor.name} (${doctor.specialty})');
     print('  - Date: ${start.toLocal().toString().split(' ')[0]}');
     print('  - Time: ${start.toLocal().hour}:00');
-    print('  - Duration: ${duration.inMinutes} minutes');
+    print('  - Duration: 1 Hour');
     print('  - Status: $status');
     if (notes.isNotEmpty) {
       print('  - Notes: $notes');
@@ -77,7 +71,6 @@ class Appointment {
       'patientId': patientId,
       'doctorId': doctorId,
       'start': start.toIso8601String(),
-      'duration': duration.inMinutes,
       'status': status.name,
       'notes': notes,
     };
@@ -89,7 +82,6 @@ class Appointment {
       patientId: json['patientId'],
       doctorId: json['doctorId'],
       start: DateTime.parse(json['start']),
-      duration: Duration(minutes: json['duration']),
       status: AppointmentStatus.values
           .firstWhere((e) => e.name == json['status']),
       notes: json['notes'] ?? '',
